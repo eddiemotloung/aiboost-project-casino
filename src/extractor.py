@@ -34,12 +34,13 @@ def extract_blocks(html: str) -> list[dict]:
     return blocks
 
 
-def run() -> None:
+def run() -> list:
     verify_file(RAW_HTML, STEP)
     blocks = extract_blocks(RAW_HTML.read_text(encoding="utf-8"))
     UNSTRUCTURED.write_text(json.dumps(blocks, indent=2, ensure_ascii=False), encoding="utf-8")
     verify_file(UNSTRUCTURED, STEP)
     print(f"[{STEP}] wrote {len(blocks)} text blocks: {', '.join(b['casino'] for b in blocks)}")
+    return [UNSTRUCTURED]
 
 
 if __name__ == "__main__":

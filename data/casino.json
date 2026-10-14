@@ -1,25 +1,34 @@
 {
+  "scraped_at": "2026-10-14T16:02:52Z",
+  "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
+  "models": [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash"
+  ],
   "casinos": [
     {
       "casino_name": "BetMGM Casino",
-      "welcome_bonus": "100% up to 1,000 USD + 25 USD free",
+      "welcome_bonus": "100% up to 1,000 USD + 25 on the house",
       "wagering_requirement": 15,
       "minimum_deposit": "10 USD",
-      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454"
+      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
+      "models_agree_on_bonus": true
     },
     {
       "casino_name": "Caesars Palace Casino",
       "welcome_bonus": "100% up to 1,000 USD",
       "wagering_requirement": 15,
       "minimum_deposit": "20 USD",
-      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454"
+      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
+      "models_agree_on_bonus": true
     },
     {
       "casino_name": "bet365 Casino",
       "welcome_bonus": "100% up to 1,000 USD + 1,000 bonus spins",
       "wagering_requirement": 20,
       "minimum_deposit": "10 USD",
-      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454"
+      "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
+      "models_agree_on_bonus": true
     }
   ]
 }

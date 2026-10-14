@@ -31,11 +31,12 @@ def fetch(url: str = SOURCE_URL) -> str:
     return resp.text
 
 
-def run() -> None:
+def run() -> list:
     RAW_HTML.parent.mkdir(parents=True, exist_ok=True)
     RAW_HTML.write_text(fetch(), encoding="utf-8")
     verify_file(RAW_HTML, STEP)
     print(f"[{STEP}] saved {RAW_HTML.stat().st_size:,} bytes from {SOURCE_URL}")
+    return [RAW_HTML]
 
 
 if __name__ == "__main__":

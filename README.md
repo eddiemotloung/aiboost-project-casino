@@ -1,8 +1,8 @@
-# Casino bonus scraper
+# AIBoost Project Crypto: casino bonus scraper
 
-Pulls the welcome bonus for 3 casinos from a public comparison article on RotoWire, uses Gemini to turn the free-text terms into structured fields, writes `data/casino.json`, and renders it as a static table in `docs/index.html` (served by GitHub Pages).
+Pulls the welcome bonus for 3 casinos from a public comparison article on RotoWire, uses Gemini to turn the free-text terms into structured fields, writes `data/casino.json`, and renders it as a table in `docs/index.html` (served by GitHub Pages).
 
-Live page: https://eddiemotloung.github.io/casino-bonus-scraper/
+Live page: https://eddiemotloung.github.io/aiboost-project-crypto/
 
 ## Install
 
@@ -21,7 +21,7 @@ cp .env.example .env      # then put your Gemini API key in .env
 python run.py
 ```
 
-Exit code 0 on success, 1 with a `FAILED: [step] ...` message otherwise.
+Exit code 0 when the review passes, 1 otherwise. Each run writes `runs/<run_id>/checklist.md` (a ledger of what was done), `ledger.json` and one log per step.
 
 ## Pipeline
 
@@ -29,17 +29,19 @@ Exit code 0 on success, 1 with a `FAILED: [step] ...` message otherwise.
 |---|---|---|---|
 | 1. Fetch | `src/fetcher.py` | `data/raw_source.html` | robots.txt disallows, HTTP 401/403/429/503, CAPTCHA page, empty file |
 | 2. Extract | `src/extractor.py` | `data/unstructured_cache.txt` | no article/table, fewer than 3 rows, empty file |
-| 3. Structure (LLM) | `src/llm_wrapper.py` | `data/casino.json` | invalid JSON, wrong record count, missing fields, wagering or deposit number not present in the source text |
-| 4. Render | `src/build_page.py` | `docs/index.html` | JSON fails validation, empty file |
+| 3. Structure (LLM) | `src/llm_wrapper.py` | `data/casino.json` | fewer than 2 models answer, models disagree on wagering or deposit, a number isn't in the source text, invalid JSON, missing fields |
+| 4. Render | `src/build_page.py` | `docs/index.html`, `docs/casino.json` | JSON fails validation, empty file |
+| Review | `src/review.py` | — | any step not ticked, any artifact or log missing or empty, a casino in the JSON missing from the page |
 
-Every step checks that its output exists and is non-empty before the next one runs.
+How failures are handled:
 
-Notes:
-- The LLM output is cross-checked against the scraped text, so a hallucinated wagering multiplier or deposit stops the run instead of being published.
-- On a 5xx (overload) Gemini is retried with backoff and then falls back to other Gemini models. 4xx errors skip to the next model.
-- `source_url` is set by the scraper, not by the model. It is the article the data came from.
-- The source lists US offers, so amounts are in USD.
+- **Checklist ledger.** A step is only ticked once its output files and its log exist and are non-empty. A step that says it worked but wrote nothing doesn't count.
+- **Review and retry.** After the run, `review.py` re-checks the ledger against what's on disk. If something failed, the pipeline is re-run from that step once, then the run fails with the reason written to `checklist.md`.
+- **Two-model cross-check.** Two different Gemini models extract the terms independently. Wagering and minimum deposit must match between them and appear in the scraped text, otherwise nothing is published. If the bonus wording differs between the models, the run notes it in the log but still passes.
+- **Overload handling.** 5xx responses are retried with backoff, then the next model in the fallback list is tried.
+
+`source_url` is set by the scraper, not the model. The source covers US offers, so amounts are in USD.
 
 ## Output fields
 
-`casino_name`, `welcome_bonus`, `wagering_requirement` (integer multiplier), `minimum_deposit`, `source_url`.
+`casino_name`, `welcome_bonus`, `wagering_requirement` (integer multiplier), `minimum_deposit`, `source_url`, plus `models_agree_on_bonus`. Top-level fields: `scraped_at`, `source_url`, `models`.
