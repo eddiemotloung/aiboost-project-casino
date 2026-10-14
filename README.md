@@ -1,8 +1,8 @@
-# AIBoost Project Crypto: casino bonus scraper
+# AIBoost Project Casino: casino bonus scraper
 
 Pulls the welcome bonus for 3 casinos from a public comparison article on RotoWire, uses Gemini to turn the free-text terms into structured fields, writes `data/casino.json`, and renders it as a table in `docs/index.html` (served by GitHub Pages).
 
-Live page: https://eddiemotloung.github.io/aiboost-project-crypto/
+Live page: https://eddiemotloung.github.io/aiboost-project-casino/
 
 ## Install
 
