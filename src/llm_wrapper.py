@@ -29,6 +29,7 @@ FALLBACK_MODELS = [
 ]
 CONSENSUS_MODELS = int(os.getenv("CONSENSUS_MODELS", "2"))
 RETRIES_PER_MODEL = 3
+RATE_LIMIT_WAIT = 20  # seconds; free-tier quotas are per minute
 
 SCHEMA = {
     "type": "OBJECT",
@@ -63,6 +64,21 @@ Blocks:
 {blocks}
 """
 
+PAGE_PROMPT = """You extract casino welcome-bonus data from the text of a web page.
+Return the first {count} online casinos on the page, in order of appearance, that state
+both a wagering requirement and a minimum deposit for their welcome bonus.
+For each casino return:
+- casino_name: the brand, e.g. "BetMGM Casino" (drop words like "Bonus", "Promo", "Offer")
+- welcome_bonus: short normalised form like "100% up to 1,000 USD" (+ extras such as "+ 25 USD free").
+  Use ISO currency codes, not symbols ($ = USD). Write numbers in full (1K -> 1,000).
+- wagering_requirement: the playthrough multiplier as an integer only (e.g. "15x wagering" -> 15).
+- minimum_deposit: amount with ISO currency code, e.g. "10 USD".
+Use only facts stated in the text. Do not guess.
+
+Page text:
+{text}
+"""
+
 FIELDS = ["casino_name", "welcome_bonus", "wagering_requirement", "minimum_deposit", "source_url"]
 
 
@@ -85,8 +101,12 @@ def ask(client: genai.Client, model: str, prompt: str) -> list[dict] | None:
         except genai_errors.ServerError as e:  # 5xx: overloaded, worth retrying
             print(f"[{STEP}] {model} attempt {attempt + 1}: HTTP {e.code}, retrying")
             time.sleep(2 ** attempt * 2)
-        except genai_errors.ClientError as e:  # 4xx: bad key or unknown model, retrying won't help
-            print(f"[{STEP}] {model} rejected request: HTTP {e.code}")
+        except genai_errors.ClientError as e:
+            if e.code == 429:  # rate limited: the per-minute quota frees up if we wait
+                print(f"[{STEP}] {model} attempt {attempt + 1}: HTTP 429 rate limited, waiting")
+                time.sleep(RATE_LIMIT_WAIT * (attempt + 1))
+                continue
+            print(f"[{STEP}] {model} rejected request: HTTP {e.code}")  # bad key/model: retrying won't help
             return None
         except (TypeError, ValueError, KeyError) as e:
             print(f"[{STEP}] {model} returned unusable JSON: {e}")
@@ -111,7 +131,7 @@ def collect_answers(prompt: str, expected: int) -> dict[str, list[dict]]:
             return answers
     raise StepError(
         f"[{STEP}] only {len(answers)} of {CONSENSUS_MODELS} required models answered "
-        f"({', '.join(answers) or 'none'}); Gemini may be overloaded, try again later"
+        f"({', '.join(answers) or 'none'}); Gemini is overloaded or rate limited, try again later"
     )
 
 
@@ -130,23 +150,37 @@ def check_against_source(rec: dict, text: str) -> None:
         raise StepError(f"[{STEP}] minimum deposit {rec.get('minimum_deposit')!r} not found in source text")
 
 
+def brand(name: str) -> str:
+    """'BetMGM Casino' -> 'betmgm': enough to tell whether two models mean the same casino."""
+    words = re.findall(r"[a-z0-9]+", str(name).lower())
+    return words[0] if words else ""
+
+
 def reconcile(answers: dict[str, list[dict]], blocks: list[dict]) -> list[dict]:
-    """Merge model answers. Hard fields must agree; the bonus text is taken from the primary model."""
+    """Merge model answers record by record. `blocks[i]` is the source text for record i.
+
+    Same casino, same wagering, same minimum deposit across models, and both numbers
+    must be in that record's source text. The bonus wording is taken from the primary model.
+    """
     models = list(answers)
     primary = answers[models[0]]
     merged = []
     for i, block in enumerate(blocks):
         recs = [answers[m][i] for m in models]
+        label = block["casino"] if block.get("kind", "row") == "row" else primary[i].get("casino_name", f"#{i + 1}")
+        names = {m: brand(r.get("casino_name")) for m, r in zip(models, recs)}
+        if len(set(names.values())) > 1:
+            raise StepError(f"[{STEP}] models picked different casinos for record {i + 1}: {names}")
         for m, rec in zip(models, recs):
             check_against_source(rec, block["text"])
         for field, key in (("wagering_requirement", int), ("minimum_deposit", number)):
             values = {m: key(r[field]) for m, r in zip(models, recs)}
             if len(set(values.values())) > 1:
-                raise StepError(f"[{STEP}] models disagree on {field} for {block['casino']}: {values}")
+                raise StepError(f"[{STEP}] models disagree on {field} for {label}: {values}")
         bonus_numbers = {m: sorted(re.findall(r"\d+", r["welcome_bonus"].replace(",", ""))) for m, r in zip(models, recs)}
         bonus_agrees = len({tuple(v) for v in bonus_numbers.values()}) == 1
         if not bonus_agrees:
-            print(f"[{STEP}] note: bonus wording differs for {block['casino']}: "
+            print(f"[{STEP}] note: bonus wording differs for {label}: "
                   + "; ".join(f"{m}: {r['welcome_bonus']}" for m, r in zip(models, recs)))
         rec = dict(primary[i])
         rec["source_url"] = block["source_url"]  # set by the scraper, never by the model
@@ -177,12 +211,21 @@ def validate(path=None) -> dict:
 def run() -> list:
     verify_file(UNSTRUCTURED, STEP)
     blocks = json.loads(UNSTRUCTURED.read_text(encoding="utf-8"))
-    joined = "\n\n".join(f"--- Block {i + 1} ---\n{b['text']}" for i, b in enumerate(blocks))
-    answers = collect_answers(PROMPT.format(blocks=joined), len(blocks))
-    casinos = reconcile(answers, blocks)
+    if blocks and blocks[0].get("kind") == "page":
+        # Generic extractor: one page of text, the models find the casinos in it.
+        prompt = PAGE_PROMPT.format(count=CASINO_COUNT, text=blocks[0]["text"])
+        sources = [blocks[0]] * CASINO_COUNT
+    else:
+        # Site-specific extractor: one block per casino, one record per block.
+        joined = "\n\n".join(f"--- Block {i + 1} ---\n{b['text']}" for i, b in enumerate(blocks))
+        prompt = PROMPT.format(blocks=joined)
+        sources = blocks
+    answers = collect_answers(prompt, len(sources))
+    casinos = reconcile(answers, sources)
     out = {
         "scraped_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source_url": SOURCE_URL,
+        "extractor": blocks[0].get("extractor", "rotowire.com"),
         "models": list(answers),
         "casinos": casinos,
     }

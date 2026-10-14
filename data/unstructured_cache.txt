@@ -1,17 +1,23 @@
 [
   {
+    "kind": "row",
     "casino": "BetMGM Casino Bonus",
     "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
-    "text": "Casino: BetMGM Casino Bonus\nCode: ROTOCAS- Click To Claim\nOffer: 100% Deposit Match up to $1,000 + 25 on the house\nKey Terms: • No deposit needed to claim 25 on the house, must be used in 3 days though. • 15× wagering on deposit match; minimum deposit: $10"
+    "text": "Casino: BetMGM Casino Bonus\nCode: ROTOCAS- Click To Claim\nOffer: 100% Deposit Match up to $1,000 + 25 on the house\nKey Terms: • No deposit needed to claim 25 on the house, must be used in 3 days though. • 15× wagering on deposit match; minimum deposit: $10",
+    "extractor": "rotowire.com"
   },
   {
+    "kind": "row",
     "casino": "Caesars Palace Casino Offer",
     "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
-    "text": "Casino: Caesars Palace Casino Offer\nCode: ROTOCASLAUNCH - Click To Claim\nOffer: First deposit matched up to $1,000\nKey Terms: • 100% match on first deposit • Minimum deposit: $20 • 15× wagering • Bonus expires after 7 days"
+    "text": "Casino: Caesars Palace Casino Offer\nCode: ROTOCASLAUNCH - Click To Claim\nOffer: First deposit matched up to $1,000\nKey Terms: • 100% match on first deposit • Minimum deposit: $20 • 15× wagering • Bonus expires after 7 days",
+    "extractor": "rotowire.com"
   },
   {
+    "kind": "row",
     "casino": "bet365 Casino Bonus",
     "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
-    "text": "Casino: bet365 Casino Bonus\nCode: ROTOWIRE - Click To Claim\nOffer: Deposit Match 100% Up to $1,000 & 1K bonus spins\nKey Terms: • Choose between match or spin offer • Minimum deposit: $10 • 20× wagering • Spins valid for 10 days"
+    "text": "Casino: bet365 Casino Bonus\nCode: ROTOWIRE - Click To Claim\nOffer: Deposit Match 100% Up to $1,000 & 1K bonus spins\nKey Terms: • Choose between match or spin offer • Minimum deposit: $10 • 20× wagering • Spins valid for 10 days",
+    "extractor": "rotowire.com"
   }
 ]

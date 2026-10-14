@@ -2,7 +2,7 @@
 
 Each line of the brief, where it's met, and the test that proves it. Run the tests with `python -m pytest -v`. They run offline: the LLM is replaced by a fake client, and the committed `data/` files are checked as evidence.
 
-Last full live run: `20261014T161032Z`. Review passed, all 4 steps ticked, models gemini-3.7-flash and gemini-3.5-flash-lite. 26/26 tests pass.
+Last full live run: `20261014T161032Z`. Review passed, all 4 steps ticked, models gemini-3.7-flash and gemini-3.5-flash-lite. 35/35 tests pass (26 for the brief, plus 9 for pluggable sources and rate limits).
 
 ## 1. Scraper script
 
@@ -52,6 +52,11 @@ Tested, but not required by the brief:
 - **Retry and report:** a failed step is retried once, then reported in `runs/<id>/checklist.md` (`test_failed_step_is_retried_then_reported`).
 - **Safe page:** scraped text is HTML-escaped on the page (`test_page_escapes_scraped_text`).
 - **No secrets in the repo:** no API key or `.env` is committed (`test_api_key_is_not_committed`).
+
+## Added after review
+
+- **Pluggable sources.** One extractor per domain, plus a generic fallback for any site. This was added after @eddiemotloung pointed out that the extractor was hard-wired to one site. Tests: `test_rotowire_urls_use_the_rotowire_extractor`, `test_unknown_domain_falls_back_to_generic`, `test_extractor_can_be_forced`, `test_adding_a_source_is_one_registered_function`, `test_generic_extractor_keeps_content_and_drops_noise`, `test_generic_extractor_rejects_empty_page`, `test_generic_page_mode_end_to_end`, `test_models_must_pick_the_same_casino`.
+- **Rate limits.** A 429 is waited out and retried (`test_rate_limited_model_is_retried_not_skipped`).
 
 ## Deviations from the brief
 

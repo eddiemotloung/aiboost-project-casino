@@ -13,7 +13,7 @@ from common import ROOT, verify_file
 
 STEPS = {
     "fetch": "Fetch source page (robots.txt checked, no block/CAPTCHA)",
-    "extract": "Extract 3 casino text blocks from the bonus table",
+    "extract": "Extract casino text (site extractor, or generic page text)",
     "structure": "Structure terms with 2 LLMs; numbers agree and appear in source",
     "build_page": "Render docs/index.html from casino.json",
 }

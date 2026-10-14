@@ -348,3 +348,91 @@ def test_api_key_is_not_committed():
         p = ROOT / f
         if p.suffix in {".py", ".md", ".json", ".txt", ".example", ".html"}:
             assert not key_like.search(p.read_text(encoding="utf-8", errors="ignore")), f"key-like string in {f}"
+
+
+# --- Pluggable sources (per-domain extractors + generic fallback) -----------------------
+
+def test_rotowire_urls_use_the_rotowire_extractor(monkeypatch):
+    monkeypatch.delenv("EXTRACTOR", raising=False)
+    assert extractor.pick_extractor(SOURCE)[0] == "rotowire.com"
+    assert extractor.pick_extractor("https://news.rotowire.com/x")[0] == "rotowire.com"
+    assert all(b["extractor"] == "rotowire.com" for b in real_blocks())
+
+
+def test_unknown_domain_falls_back_to_generic(monkeypatch):
+    monkeypatch.delenv("EXTRACTOR", raising=False)
+    assert extractor.pick_extractor("https://some-other-casino-site.com/promos")[0] == "generic"
+    assert extractor.pick_extractor("https://notrotowire.com/x")[0] == "generic"  # no false suffix match
+
+
+def test_extractor_can_be_forced(monkeypatch):
+    monkeypatch.setenv("EXTRACTOR", "generic")
+    assert extractor.pick_extractor(SOURCE)[0] == "generic"
+    monkeypatch.setenv("EXTRACTOR", "nope.com")
+    with pytest.raises(StepError, match="unknown"):
+        extractor.pick_extractor(SOURCE)
+
+
+def test_adding_a_source_is_one_registered_function(monkeypatch):
+    monkeypatch.delenv("EXTRACTOR", raising=False)
+    monkeypatch.setattr(extractor, "EXTRACTORS", dict(extractor.EXTRACTORS))
+
+    @extractor.register("newsite.com")
+    def newsite(html, url):
+        return [{"kind": "row", "casino": "X", "source_url": url, "text": html}]
+    blocks = extractor.extract_blocks("15x wagering, min deposit $10", "https://www.newsite.com/bonus")
+    assert blocks[0]["extractor"] == "newsite.com" and blocks[0]["source_url"] == "https://www.newsite.com/bonus"
+
+
+def test_generic_extractor_keeps_content_and_drops_noise():
+    html = ("<html><head><script>var secret=1</script><style>p{}</style></head><body>"
+            "<nav>Home Login</nav><main><h1>Bonuses</h1><p>Casino A: 100% up to $500, 35x wagering, "
+            "minimum deposit $20.</p>" + "<p>More text about terms.</p>" * 10 + "</main>"
+            "<footer>Copyright</footer></body></html>")
+    [block] = extractor.generic(html, "https://example.com/bonuses")
+    assert block["kind"] == "page" and "35x wagering" in block["text"]
+    for noise in ("secret", "Home Login", "Copyright"):
+        assert noise not in block["text"]
+
+
+def test_generic_extractor_rejects_empty_page():
+    with pytest.raises(StepError, match="nothing to extract"):
+        extractor.generic("<html><body><p>Hi</p></body></html>", "https://example.com")
+
+
+def test_generic_page_mode_end_to_end(fake_llm, monkeypatch):
+    """Generic extractor on the real saved page: models find the 3 casinos in the page text."""
+    monkeypatch.setenv("EXTRACTOR", "generic")
+    blocks = extractor.extract_blocks(RAW.read_text(encoding="utf-8"), SOURCE)
+    llm_wrapper.UNSTRUCTURED.write_text(json.dumps(blocks), encoding="utf-8")
+    client = fake_llm.install({llm_wrapper.MODEL: good_answer(), "gemini-3.5-flash": good_answer()})
+    llm_wrapper.run()
+    assert "Return the first 3 online casinos" in client.calls[0][1]
+    data = json.loads(fake_llm.out.read_text(encoding="utf-8"))
+    assert data["extractor"] == "generic"
+    assert [c["casino_name"] for c in data["casinos"]] == ["BetMGM Casino", "Caesars Palace Casino", "bet365 Casino"]
+
+
+def test_models_must_pick_the_same_casino(fake_llm):
+    other = good_answer()
+    other[0], other[1] = other[1], other[0]  # second model lists casinos in another order
+    fake_llm.install({llm_wrapper.MODEL: good_answer(), "gemini-3.5-flash": other})
+    with pytest.raises(StepError, match="different casinos"):
+        llm_wrapper.run()
+
+
+def test_rate_limited_model_is_retried_not_skipped(fake_llm, monkeypatch):
+    calls = {"n": 0}
+    limited = llm_wrapper.genai_errors.ClientError(429, {"error": {"message": "quota"}})
+
+    class Flaky(FakeClient):
+        def generate_content(self, model, contents, config):
+            if model == llm_wrapper.MODEL and calls["n"] == 0:
+                calls["n"] += 1
+                self.calls.append((model, contents))
+                raise limited
+            return super().generate_content(model, contents, config)
+    client = Flaky({llm_wrapper.MODEL: good_answer(), "gemini-3.5-flash": good_answer()})
+    monkeypatch.setattr(llm_wrapper, "get_client", lambda: client)
+    llm_wrapper.run()
+    assert json.loads(fake_llm.out.read_text())["models"][0] == llm_wrapper.MODEL

@@ -31,6 +31,7 @@ class Tee:
     def write(self, text):
         for s in self.streams:
             s.write(text)
+            s.flush()  # so logs/<step>.log shows progress while a slow step (LLM retries) runs
 
     def flush(self):
         for s in self.streams:
