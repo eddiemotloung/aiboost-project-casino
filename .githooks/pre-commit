@@ -1,0 +1,10 @@
+#!/bin/sh
+# Block commits that contain an API key or a .env file.
+if git diff --cached --name-only | grep -qE '(^|/)\.env$'; then
+  echo "pre-commit: refusing to commit .env (it holds your API key)" >&2
+  exit 1
+fi
+if git diff --cached -U0 | grep -E '^\+' | grep -qE 'AQ\.[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{30,}'; then
+  echo "pre-commit: refusing to commit: staged changes contain something that looks like an API key" >&2
+  exit 1
+fi
