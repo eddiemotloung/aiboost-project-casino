@@ -155,7 +155,8 @@ def reconcile(answers: dict[str, list[dict]], blocks: list[dict]) -> list[dict]:
     return merged
 
 
-def validate(path=CASINO_JSON) -> dict:
+def validate(path=None) -> dict:
+    path = path or CASINO_JSON
     verify_file(path, STEP)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))

@@ -23,6 +23,14 @@ python run.py
 
 Exit code 0 when the review passes, 1 otherwise. Each run writes `runs/<run_id>/checklist.md` (a ledger of what was done), `ledger.json` and one log per step.
 
+## Tests
+
+```bash
+python -m pytest -v
+```
+
+26 offline tests, one per requirement in the brief (no network or API key needed). See [REQUIREMENTS_CHECKLIST.md](REQUIREMENTS_CHECKLIST.md) for the requirement → test mapping.
+
 ## Pipeline
 
 | Step | File | Output | Fails when |

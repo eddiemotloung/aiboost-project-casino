@@ -1,9 +1,9 @@
 {
-  "scraped_at": "2026-10-14T16:02:52Z",
+  "scraped_at": "2026-10-14T16:19:10Z",
   "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
   "models": [
-    "gemini-3.8-flash",
-    "gemini-3.7-flash"
+    "gemini-3.7-flash",
+    "gemini-3.5-flash-lite"
   ],
   "casinos": [
     {
