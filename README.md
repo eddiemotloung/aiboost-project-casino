@@ -111,32 +111,35 @@ They run offline (no internet or API key needed): the Gemini client is replaced 
 | Same casino | Two models picking different casinos for a record stops the run | 1 |
 | Rate limit | A 429 is waited out and retried, not skipped | 1 |
 
-### Live end-to-end run
+### Live end-to-end runs
 
-`python run.py` was also run for real against RotoWire and Gemini (run `20261014T161032Z`):
+`python run.py` was run for real against RotoWire and Gemini. The latest run is `20261014T170520Z`:
 
-- **Fetch:** robots.txt allowed the page, and 341,579 bytes were saved.
-- **Extract:** 3 casinos found (BetMGM, Caesars Palace, bet365).
-- **Structure:** gemini-3.8-flash was rate limited (HTTP 429), so the fallback was used. gemini-3.7-flash and gemini-3.5-flash-lite agreed on all wagering and deposit values.
+- **Fetch:** robots.txt allowed the page, and 341,578 bytes were saved.
+- **Extract:** the RotoWire extractor found 3 casinos (BetMGM, Caesars Palace, bet365).
+- **Structure:** gemini-3.5-flash-lite and gemini-flash-latest agreed on all wagering and deposit values. Earlier models in the list were rate limited, so the fallback was used.
 - **Render and review:** the page was built, all 4 checklist steps were ticked, and the review passed.
+
+An earlier run (`20261014T161032Z`, gemini-3.7-flash + gemini-3.5-flash-lite) gave the same numbers.
 
 The output was checked by hand against the source table:
 
 | Casino | Welcome bonus | Wagering | Min. deposit |
 |---|---|---|---|
-| BetMGM Casino | 100% up to 1,000 USD + 25 on the house | 15x | 10 USD |
+| BetMGM Casino | 100% up to 1,000 USD + 25 USD free | 15x | 10 USD |
 | Caesars Palace Casino | 100% up to 1,000 USD | 15x | 20 USD |
 | bet365 Casino | 100% up to 1,000 USD + 1,000 bonus spins | 20x | 10 USD |
 
-A failure run was also tested live: pointed at a page with no bonus table, the pipeline retried once, exited with code 1, and wrote the reason to the checklist.
-
 ### Generic extractor, live
 
-`EXTRACTOR=generic` was run against the same page with real Gemini:
+`EXTRACTOR=generic python run.py` was run against the same page with real Gemini (run `20261014T170352Z`). **The review passed.**
 
-- **Extract:** the generic path produced 8,494 chars of cleaned page text.
-- **Full two-model run:** didn't complete. Only one model was available (the others returned 429 rate limited or 503 overloaded), so the run **failed safely**. Nothing was published, the checklist recorded why, and the live page kept the last good data.
-- **Single-model check:** the same page text was sent to the one available model (gemini-3.5-flash-lite) without writing any files. It found the same 3 casinos with the same wagering (15, 15, 20) and minimum deposits (10, 20, 10 USD), and all passed the source-text check.
-- **Wording slip:** that model wrote "1,000 USD bonus spins". This shows why bonus wording isn't treated as verified (see `models_agree_on_bonus`).
+- **Extract:** the generic path gave the LLM 8,505 chars of cleaned page text instead of the table rows.
+- **Structure:** gemini-3.5-flash-lite and gemini-3.1-flash-lite independently found the **same 3 casinos with the same numbers** as the RotoWire extractor: wagering 15, 15, 20 and minimum deposits 10, 20, 10 USD. All values were in the page text.
+- **What this shows:** a site with no dedicated extractor can still be scraped, with the same checks.
 
-The two-model generic run is still pending until the Gemini quota allows it. The generic path is covered end to end by the offline tests.
+### Failure handling, live
+
+- **Layout change:** pointed at a page with no bonus table, the pipeline retried once, exited with code 1, and wrote the reason to the checklist.
+- **Rate limits:** when only one Gemini model was available (the others returned 429 or 503), the two-model run **failed safely**. Nothing was published, the checklist recorded why, and the live page kept the last good data.
+- **Wording slip:** in a single-model check, one model wrote "1,000 USD bonus spins". This is why bonus wording isn't treated as verified (see `models_agree_on_bonus`).

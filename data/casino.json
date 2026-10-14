@@ -1,14 +1,15 @@
 {
-  "scraped_at": "2026-10-14T16:19:10Z",
+  "scraped_at": "2026-10-14T17:10:57Z",
   "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",
+  "extractor": "rotowire.com",
   "models": [
-    "gemini-3.7-flash",
-    "gemini-3.5-flash-lite"
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest"
   ],
   "casinos": [
     {
       "casino_name": "BetMGM Casino",
-      "welcome_bonus": "100% up to 1,000 USD + 25 on the house",
+      "welcome_bonus": "100% up to 1,000 USD + 25 USD free",
       "wagering_requirement": 15,
       "minimum_deposit": "10 USD",
       "source_url": "https://www.rotowire.com/news/best-casino-bonuses-in-the-us-this-week-top-welcome-offers-for-new-players-in-2026-120454",

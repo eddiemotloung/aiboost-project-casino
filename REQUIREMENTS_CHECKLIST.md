@@ -2,7 +2,7 @@
 
 Each line of the brief, where it's met, and the test that proves it. Run the tests with `python -m pytest -v`. They run offline: the LLM is replaced by a fake client, and the committed `data/` files are checked as evidence.
 
-Last full live run: `20261014T161032Z`. Review passed, all 4 steps ticked, models gemini-3.7-flash and gemini-3.5-flash-lite. 35/35 tests pass (26 for the brief, plus 9 for pluggable sources and rate limits).
+Last full live run: `20261014T170520Z`. Review passed, all 4 steps ticked, models gemini-3.5-flash-lite and gemini-flash-latest. The generic extractor also passed a live run (`20261014T170352Z`) with the same results. 35/35 tests pass (26 for the brief, plus 9 for pluggable sources and rate limits).
 
 ## 1. Scraper script
 
