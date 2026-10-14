@@ -2,7 +2,7 @@
 
 Pulls the welcome bonus for 3 casinos from a public comparison article on RotoWire, uses Gemini to turn the free-text terms into structured fields, writes `data/casino.json`, and renders it as a static table in `docs/index.html` (served by GitHub Pages).
 
-Live page: https://<your-github-user>.github.io/casino-bonus-scraper/
+Live page: https://eddiemotloung.github.io/casino-bonus-scraper/
 
 ## Install
 
